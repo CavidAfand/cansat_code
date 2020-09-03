@@ -1,5 +1,6 @@
 #include "camera.h"
 
+
   Camera :: Camera(void) : myCAM(OV2640, CS){}
   
   extern int capture_stat;
@@ -70,7 +71,7 @@
 
 
 
-void Camera :: capture(void){
+void Camera :: capture(const char *imageName){
   
     myCAM.flush_fifo();
     myCAM.clear_fifo_flag();
@@ -80,20 +81,20 @@ void Camera :: capture(void){
     printString("start capture.\n");
     while ( !myCAM.get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)); 
     printString("CAM Capture Done.\n");
-    read_fifo_burst(myCAM);
+    read_fifo_burst(myCAM, imageName);
     myCAM.clear_fifo_flag();
 //    _delay_ms(500);
   
   } 
 
 
-uint8_t Camera :: read_fifo_burst(ArduCAM myCAM)
+uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *imageName)
 {
   uint8_t temp = 0, temp_last = 0;
   uint32_t length = 0;
   static int i = 0;
   static int k = 0;
-  char str[8];
+  char str[28];
   char len[8];
   File outFile;
   byte buf[256]; 
@@ -167,13 +168,14 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM)
       is_header = true;
       myCAM.CS_HIGH();
       //Create a avi file
-      k = k + 10;
-      itoa(k, str, 10);  // ad qoyma
+//      k = k + 10;
+//      itoa(k, str, 10);  // ad qoyma
   //    Serial.print(utc[0]);
   //    Serial.println(utc[1]);
   //    
   //    strcat(str, utc);
-      strcat(str, ".jpg");
+  
+      strcat(imageName, ".jpg");
       //Open the new file
       outFile = SD.open(str, O_WRITE | O_CREAT | O_TRUNC);
       if (! outFile)

@@ -13,11 +13,6 @@ class GPS{
     char  GPGGA[100];
     char  GPRMC[100];  	
 
-
-    char utc_time_new[10];
-    char latitude_new[12];
-    char longtitude_new[12];
-    char date_new[7];
   
   	GPS();
   	bool check();

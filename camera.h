@@ -5,6 +5,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include "memorysaver.h"
+//#include "functions.h"
 
 #define   FRAMES_NUM    0x00
 #define   SD_CS 53
@@ -19,7 +20,7 @@ class Camera{
 
   Camera();
   void init(); 
-  void capture();
-  uint8_t read_fifo_burst(ArduCAM myCAM);
+  void capture(const char *imageName);
+  uint8_t read_fifo_burst(ArduCAM myCAM, const char *imageName);
 
 };

@@ -67,8 +67,12 @@ void setup() {
   bool t = false;
   while(true){
     if(cnst.flag){
+      char str[25];
+      strcat(str, cnst.gps.date);
+      strcat(str, "--");
+      strcat(str, cnst.gps.utc_time);
       cur_time = millis();
-      cnst.camera.capture();
+      cnst.camera.capture(str);
       Serial.print("Capture time:"  );
       cur_time = millis()-cur_time;
       Serial.println(float(cur_time)/1000);
