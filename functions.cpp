@@ -17,9 +17,14 @@ void CanSat :: buzzer(uint8_t times){
   }
 }
 
-void CanSat :: runProp(){
-  pinMode(PROPELLER, OUTPUT);
-  digitalWrite(PROPELLER, HIGH);
+void CanSat :: runProp(uint8_t speed1,uint8_t speed2){
+  analogWrite(MOTOR1, speed1);
+  analogWrite(MOTOR2, speed2);
+}
+
+void CanSat :: stopProp() {
+  analogWrite(MOTOR1, 0);
+  analogWrite(MOTOR2, 0);
 }
 
 void CanSat:: sendPacket(byte *packet, byte len) {
@@ -130,8 +135,11 @@ void CanSat :: init(void){
   
   camera.init();
       
-  servo.attach(43);
-  servo.write(0);
+ 
+
+  // Motor initialize
+  pinMode(MOTOR1, OUTPUT);
+  pinMode(MOTOR2, OUTPUT);
 
 //  buzzer(3);
 }
@@ -152,6 +160,13 @@ void CanSat :: intochar (unsigned long n, char* pres ){
     pres[6]='\0';
   }
 
+
+char* CanSat :: getBattery(uint16_t batteryPin) {
+  char str[10];
+  float voltage = analogRead(batteryPin) * (5.00 / 1023.00) * 2;
+  dtostrf(voltage, 3, 1, str);
+  return str;
+}
 
 void CanSat :: getData(void){
   
@@ -190,11 +205,11 @@ void CanSat :: getData(void){
   strcat(package,",");
 
   //bat_vol1
-  strcat(package,"9");
+  strcat(package, getBattery(A1));
   strcat(package,",");
 
   //bat_vo12
-  strcat(package,"11");
+  strcat(package, getBattery(A2));
   strcat(package,",");
   
   //read relative altitude respect to base

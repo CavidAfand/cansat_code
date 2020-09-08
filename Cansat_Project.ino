@@ -20,6 +20,15 @@ ISR(USART2_RX_vect){
     cnst.timer = 0;
     cnst.base_pressure = cnst.bme.readPressure();
   }
+
+  if (ch=='2') {
+    cnst.motor_flag = true;
+    printString("2 basildi\r\n");
+  }
+  if (ch =='3') {
+    cnst.motor_flag = false;
+    printString("3 basildi\r\n");
+  }
   
   else if(ch=='0'){
     cnst.statu=0;
@@ -61,18 +70,27 @@ ISR (TIMER1_OVF_vect)    // Timer1 ISR
   }
 }
 
+int k = 2;
 void setup() {
 
   cnst.init();
   bool t = false;
   while(true){
+
+    uint16_t ldrValue = analogRead(A3);
+    if (ldrValue >= 650) cnst.motor_flag = true;
+    else cnst.motor_flag = false;
+     
+    if (cnst.motor_flag) {
+      cnst.runProp(250, 250);
+    }
+    else {
+      cnst.stopProp();
+    }
+    
     if(cnst.flag){
-      char str[25];
-      strcat(str, cnst.gps.date);
-      strcat(str, "--");
-      strcat(str, cnst.gps.utc_time);
       cur_time = millis();
-      cnst.camera.capture(str);
+      cnst.camera.capture(cnst.gps.date, cnst.gps.utc_time);
       Serial.print("Capture time:"  );
       cur_time = millis()-cur_time;
       Serial.println(float(cur_time)/1000);

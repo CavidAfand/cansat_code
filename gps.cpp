@@ -67,6 +67,7 @@
   printString("\r\n");
 
   printString("time: ");
+  utc_time[6] = '\0';
   printString(utc_time);
   printString("\r\n");
   

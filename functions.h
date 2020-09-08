@@ -12,6 +12,7 @@
 #include <Adafruit_Sensor.h>
 #include "Adafruit_BME680.h"
 
+
 #include "gps.h"
 
 class CanSat{
@@ -19,6 +20,7 @@ class CanSat{
    int number_of_package  =0;
    int timer=0;
    volatile bool flag=false;
+   volatile bool motor_flag = false;
    bool start_flag  = false ;
    bool altitude_flag  = false ;
    bool light_flag  = false ;
@@ -37,7 +39,6 @@ class CanSat{
 
    Adafruit_BME680  bme;
 
-   Servo servo ;
    
    CanSat();
    void init();
@@ -49,7 +50,9 @@ class CanSat{
    float base_pressure;
    uint16_t height;
    void getData();
-   void runProp();
+   char* getBattery(uint16_t batteryPin);
+   void runProp(uint8_t speed1,uint8_t speed2);
+   void stopProp();
    void changeBaudrate();
    void sendPacket(byte *packet, byte len);
       

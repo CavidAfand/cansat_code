@@ -71,7 +71,7 @@
 
 
 
-void Camera :: capture(const char *imageName){
+void Camera :: capture(const char *dateString, const char *timeString){
   
     myCAM.flush_fifo();
     myCAM.clear_fifo_flag();
@@ -81,14 +81,14 @@ void Camera :: capture(const char *imageName){
     printString("start capture.\n");
     while ( !myCAM.get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)); 
     printString("CAM Capture Done.\n");
-    read_fifo_burst(myCAM, imageName);
+    read_fifo_burst(myCAM, dateString, timeString);
     myCAM.clear_fifo_flag();
 //    _delay_ms(500);
   
   } 
 
 
-uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *imageName)
+uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *dateString, const char *timeString)
 {
   uint8_t temp = 0, temp_last = 0;
   uint32_t length = 0;
@@ -173,9 +173,30 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *imageName)
   //    Serial.print(utc[0]);
   //    Serial.println(utc[1]);
   //    
-  //    strcat(str, utc);
+//      strcat(str, utc);
   
-      strcat(imageName, ".jpg");
+//      strcat(imageName, ".jpg");
+      for (int i=0;i<6;i++) {
+        str[i] = timeString[i];
+      }
+//      str[6] = 'a';
+
+//      for (int i=0, j=7; i<6; i++, j++) {
+//        str[j] = dateString[i];
+//      }
+    
+      str[6] = '.';
+      str[7] = 'j';
+      str[8] = 'p';
+      str[9] = 'g';
+      str[10] = '\0';
+//      strcat(str,".jpg");
+      printString("Image name: ");
+      printString(str);
+      printString("\r\n");
+
+     
+      
       //Open the new file
       outFile = SD.open(str, O_WRITE | O_CREAT | O_TRUNC);
       if (! outFile)
