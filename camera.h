@@ -20,7 +20,7 @@ class Camera{
 
   Camera();
   void init(); 
-  void capture(const char *dateString, const char *timeString);
-  uint8_t read_fifo_burst(ArduCAM myCAM, const char *dateString, const char *timeString);
+  void capture(const char *timeString);
+  uint8_t read_fifo_burst(ArduCAM myCAM, const char *timeString);
 
 };

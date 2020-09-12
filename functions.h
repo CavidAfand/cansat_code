@@ -2,7 +2,6 @@
 #include<avr/interrupt.h>
 #include <Servo.h>
 
-#include <avr/io.h>
 #include "uart.h"
 #include "defines.h"
 #include "camera.h"
@@ -17,10 +16,13 @@
 
 class CanSat{
   public :   
-   int number_of_package  =0;
-   int timer=0;
+   volatile int number_of_package  =0;
+   volatile int timer=0;
    volatile bool flag=false;
    volatile bool motor_flag = false;
+   volatile char separation_time[14];
+   volatile bool separated = false;
+   bool camera_flag = false;
    bool start_flag  = false ;
    bool altitude_flag  = false ;
    bool light_flag  = false ;
@@ -30,12 +32,14 @@ class CanSat{
 
    
    int statu = 0;
-   int altitude = 0;
-   int pre_altitude  = 0;
-   int spee = 0;
+   volatile float altitude = 0;
+   volatile float base_altitude = 0;
+   volatile float pre_altitude  = 0;
+   volatile float spee = 0;
+   float pre_voltage1 = 0;
+   float pre_voltage2 = 0;
 
-//   Adafruit_BMP280 bme; 
-   #define SEALEVELPRESSURE_HPA (1013.25)
+
 
    Adafruit_BME680  bme;
 
@@ -51,9 +55,12 @@ class CanSat{
    uint16_t height;
    void getData();
    char* getBattery(uint16_t batteryPin);
+   char* calculateAltitude();
+   char* calculateSpeed();
    void runProp(uint8_t speed1,uint8_t speed2);
    void stopProp();
    void changeBaudrate();
+   void reset_counter();
    void sendPacket(byte *packet, byte len);
       
 };

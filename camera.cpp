@@ -5,7 +5,9 @@
   
   extern int capture_stat;
   extern char utc[7];
-  
+  extern volatile int captured_photo_number;
+  extern volatile int sent_photo_number;
+    
   void Camera :: init(void){    
     
     uint8_t vid, pid;
@@ -71,7 +73,7 @@
 
 
 
-void Camera :: capture(const char *dateString, const char *timeString){
+void Camera :: capture(const char *timeString){
   
     myCAM.flush_fifo();
     myCAM.clear_fifo_flag();
@@ -81,20 +83,20 @@ void Camera :: capture(const char *dateString, const char *timeString){
     printString("start capture.\n");
     while ( !myCAM.get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)); 
     printString("CAM Capture Done.\n");
-    read_fifo_burst(myCAM, dateString, timeString);
+    read_fifo_burst(myCAM, timeString);
     myCAM.clear_fifo_flag();
 //    _delay_ms(500);
   
   } 
 
 
-uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *dateString, const char *timeString)
+uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *timeString)
 {
   uint8_t temp = 0, temp_last = 0;
   uint32_t length = 0;
   static int i = 0;
   static int k = 0;
-  char str[28];
+  char str[12];
   char len[8];
   File outFile;
   byte buf[256]; 
@@ -127,15 +129,19 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *dateString, const c
       //Write the remain bytes in the buffer
       myCAM.CS_HIGH();
       outFile.write(buf, i);
-      for(int t=0; t<i;t++){
-          transmitByte2(buf[t]);
-          
+      if (captured_photo_number > 5) {
+        for(int t=0; t<i;t++){
+            transmitByte2(buf[t]);
         }
+        sent_photo_number++;
+      }
           
       //Close the file
       outFile.close();
       Serial.println(F("OK"));
       capture_stat = 1;
+      
+      
       
       is_header = false;
       myCAM.CS_LOW();
@@ -152,8 +158,10 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *dateString, const c
         //Write 256 bytes image data to file
         myCAM.CS_HIGH();
         outFile.write(buf, 256);
-        for(int t=0; t<256;t++){
-          transmitByte2(buf[t]);
+        if (captured_photo_number > 5) {
+          for(int t=0; t<256;t++){
+            transmitByte2(buf[t]);
+          }
         }
         _delay_ms(5);
         
@@ -168,33 +176,29 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *dateString, const c
       is_header = true;
       myCAM.CS_HIGH();
       //Create a avi file
-//      k = k + 10;
-//      itoa(k, str, 10);  // ad qoyma
-  //    Serial.print(utc[0]);
-  //    Serial.println(utc[1]);
-  //    
-//      strcat(str, utc);
-  
-//      strcat(imageName, ".jpg");
-      for (int i=0;i<6;i++) {
-        str[i] = timeString[i];
-      }
-//      str[6] = 'a';
 
-//      for (int i=0, j=7; i<6; i++, j++) {
-//        str[j] = dateString[i];
-//      }
+
+      /** set name of photo file **/
+      bool string_flag = true;
+      for (int i=0; i < 6; i++) {
+          if (timeString[0] < 48 || timeString[0] > 57) {
+            string_flag = false;
+            break;
+          }
+      }
+      memset(str, '\0', 12);
+      if (string_flag == true) {
+        strcat(str, timeString);
+        strcat(str, ".jpg");
+      }else {
+        str[0] = '\0';
+        strcat(str, "12345.jpg");
+      }
+
     
-      str[6] = '.';
-      str[7] = 'j';
-      str[8] = 'p';
-      str[9] = 'g';
-      str[10] = '\0';
-//      strcat(str,".jpg");
       printString("Image name: ");
       printString(str);
       printString("\r\n");
-
      
       
       //Open the new file
@@ -208,6 +212,9 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *dateString, const c
       myCAM.set_fifo_burst();   
       buf[i++] = temp_last;
       buf[i++] = temp;   
+
+    
+      captured_photo_number++;
     }
   }
     myCAM.CS_HIGH();

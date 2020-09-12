@@ -17,6 +17,9 @@
 #define MOTOR2_BACK       34 
 #define MOTOR2_SPEED      5
 
+#define BATTERY1 A1
+#define BATTERY2 A2
+
 //#define BMP_SCK 52
 //#define BMP_MISO 50
 //#define BMP_MOSI 51 4

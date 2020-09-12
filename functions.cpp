@@ -1,9 +1,15 @@
 #include "functions.h"
 
+
 CanSat::CanSat():bme(BME_CS, BME_MOSI, BME_MISO,  BME_SCK){}
 
 extern int capture_stat;
 char utc[7];
+extern volatile int captured_photo_number;
+extern volatile int sent_photo_number;
+
+//   Adafruit_BMP280 bme; 
+#define SEALEVELPRESSURE_HPA (1013.25)
 
 void CanSat :: buzzer(uint8_t times){
 
@@ -77,13 +83,7 @@ void CanSat :: init(void){
   initUSART2(); 
 
 
-  //Start Timer Configurations 
-
-  TCNT1 = 49911;   // for 1 sec at 16 MHz 
-
-  TCCR1A = 0x00;
-  TCCR1B = (1<<CS10) | (1<<CS12);  // Timer mode with 1024 prescler
-  TIMSK1 = (1 << TOIE1) ;
+  
 
   if(bme.begin()){
      
@@ -108,10 +108,17 @@ void CanSat :: init(void){
   }
   char temp[10];
   base_pressure = bme.readPressure();
+  base_altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
+  altitude = base_altitude;
+  pre_altitude = base_altitude;
   
   Serial.println(base_pressure);
+  Serial.print("base alt: ");
+  Serial.println(base_altitude);
   _delay_ms(1000);
 
+  pre_voltage1 = analogRead(BATTERY1) * (5.00 / 1023.00) * 2;
+  pre_voltage2 = analogRead(BATTERY2) * (5.00 / 1023.00) * 2;
 
   
   if(gps.check()) {
@@ -141,6 +148,16 @@ void CanSat :: init(void){
   pinMode(MOTOR1, OUTPUT);
   pinMode(MOTOR2, OUTPUT);
 
+  //Start Timer Configurations 
+
+  TCNT1 = 49911;   // for 1 sec at 16 MHz 
+
+  TCCR1A = 0x00;
+  TCCR1B = (1<<CS10) | (1<<CS12);  // Timer mode with 1024 prescler
+  TIMSK1 = (1 << TOIE1) ;
+
+  flag = true;
+
 //  buzzer(3);
 }
 
@@ -164,7 +181,39 @@ void CanSat :: intochar (unsigned long n, char* pres ){
 char* CanSat :: getBattery(uint16_t batteryPin) {
   char str[10];
   float voltage = analogRead(batteryPin) * (5.00 / 1023.00) * 2;
+  if (batteryPin == BATTERY1) {
+    if (voltage > pre_voltage1) voltage = pre_voltage1;
+    else if (voltage < pre_voltage1) pre_voltage1 = voltage;
+  }
+  else if (batteryPin == BATTERY2) {
+    if (voltage > pre_voltage2) voltage = pre_voltage2;
+    else if (voltage < pre_voltage2) pre_voltage2 = voltage;
+  }
   dtostrf(voltage, 3, 1, str);
+  return str;
+}
+
+char* CanSat :: calculateAltitude() {
+  char str[15];
+  memset(str, '\0', 15);
+  altitude = bme.readAltitude(SEALEVELPRESSURE_HPA) - base_altitude;
+  int altitude_int = (int)(altitude * 100);
+
+  if (altitude_int < 0 && altitude_int/100 == 0) sprintf(str, "-%d.%d", altitude_int/100, abs(altitude_int%100));
+  else sprintf(str, "%d.%d", altitude_int/100, abs(altitude_int%100));
+  return str;
+}
+
+char* CanSat :: calculateSpeed() {
+  char str[10];
+  memset(str, '\0', 10);
+
+  spee = altitude - pre_altitude;
+  pre_altitude = altitude;
+  int spee_int = (int)(spee * 100);
+
+  if(spee_int < 0 && spee_int/100 == 0) sprintf(str, "%d.%d", spee_int/100, abs(spee_int%100));
+  else sprintf(str, "%d.%d", spee_int/100, abs(spee_int%100));
   return str;
 }
 
@@ -191,99 +240,111 @@ void CanSat :: getData(void){
   temp[7] = ',';
   strcat(package,temp); 
   
-  //Concat time device is on
+  //Concat time device is on  - 2nd data
   memset(temp, 0, sizeof (temp));
   itoa(timer,temp,10);
   strcat(package,temp); 
   strcat(package,",");
 
-  //Concat number of package generated
+  //Concat number of package generated - 3rd data
   number_of_package++;
   memset(temp, 0, sizeof (temp));
   itoa(number_of_package,temp,10);
   strcat(package,temp);
   strcat(package,",");
 
-  //bat_vol1
-  strcat(package, getBattery(A1));
+  //bat_vol1 - 4th data
+  strcat(package, getBattery(BATTERY1));
   strcat(package,",");
 
-  //bat_vo12
-  strcat(package, getBattery(A2));
+  //bat_vo12 - 5th data
+  strcat(package, getBattery(BATTERY2));
   strcat(package,",");
-  
-  //read relative altitude respect to base
-  altitude = bme.readAltitude(base_pressure/100.0);//(float)(bme.pressure / 100.0)
-  //Serial.println(altitude);
 
-  //reset temporary String (temp) & Concat altitude to package
-  memset(temp, 0, sizeof( temp));  // butun sizeof-lari deyisdim, moterize elave etdik
-  itoa(altitude,temp,10);
-  strcat(package,temp);
+  //reset temporary String (temp) & Concat altitude to package - 6th data
+//  memset(temp, 0, sizeof( temp));  
+//  itoa(altitude,temp,10);
+  strcat(package,calculateAltitude());
   strcat(package,",");
   
-  //Concat speed 
-  memset(temp, 0, sizeof(temp));
-  spee = pre_altitude-altitude;
-  
-  itoa(spee,temp,10);
-  pre_altitude=altitude;
-  strcat(package,temp);
+  //Concat speed  - 7th data
+//  memset(temp, 0, sizeof(temp));
+//  spee = pre_altitude-altitude;
+
+//  itoa(spee,temp,10);
+//  pre_altitude=altitude;
+  strcat(package,calculateSpeed());
   strcat(package,",");
 
   //Concat latitude & longtitude
   gps.get_data();
+  // 8th data
   strcat(package,gps.longtitude);
   strcat(package,"E,");
+  // 9th data
   strcat(package,gps.latitude);
   strcat(package,"N,");
 
-//  strcat(package,"491215");
-//  strcat(package,",");
-//  strcat(package,"401542");
-//  strcat(package,",");
   
-  //picture status
+  //picture status - 10th data
   memset(temp, 0, sizeof(temp));
   itoa(capture_stat,temp,10);
   capture_stat = 0;
   strcat(package,temp);
   strcat(package,",");
   
-  //rpm1
+  //rpm1 - 11th data 
   strcat(package,"100");
   strcat(package,",");
   
-  //rpm2
+  //rpm2 - 12th data
   strcat(package,"100");
   strcat(package,",");
   
-  //seperation time
-  strcat(package,"28092018153512");
+  //seperation time - 13th data
+  if (separated == false) {
+    strcat(package,"------");
+    strcat(package,",");
+  }
+  else {
+    strcat(package, separation_time);
+//    strcat(package, "time");
+    strcat(package, ",");
+  }
+
+  //num of taken photos - 14th data
+  memset(temp, 0, sizeof(temp));
+  itoa(captured_photo_number, temp, 10);
+  strcat(package,temp);
   strcat(package,",");
 
-  //num of taken photos
-  strcat(package,"5");
-  strcat(package,",");
-
-  //num of taken photos
-  strcat(package,"5");
+  //num of taken photos - 15th data
+  memset(temp, 0, sizeof(temp));
+  itoa(sent_photo_number, temp, 10);
+  strcat(package,temp);
   
   //end
   strcat(package,"!");
   
   printString2(package);
-//  printString2("\r\n");
+
   printString(package);
   printString("\r\n");
   
   
-//  Serial.println(gps.utc_time);
-//  for(int i = 0;i<7;i++){
-//    utc[i] = gps.utc_time[i];
-//  }
 }
 
+
+void CanSat :: reset_counter() {
+  timer = 0;
+  number_of_package = 0;
+
+  base_altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
+  altitude = base_altitude;
+//  pre_altitude = altitude; 
+
+  separated = false;
+}
 
 //
 //float CanSat::readAltitude(float seaLevelhPa) {
