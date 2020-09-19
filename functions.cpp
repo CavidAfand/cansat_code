@@ -33,6 +33,7 @@ void CanSat :: stopProp() {
   analogWrite(MOTOR2, 0);
 }
 
+
 void CanSat:: sendPacket(byte *packet, byte len) {
   for (byte i=0; i < len; i++) {
     Serial1.write(packet[i]);
@@ -83,8 +84,6 @@ void CanSat :: init(void){
   initUSART2(); 
 
 
-  
-
   if(bme.begin()){
      
     printString("BME680 initialized success.\n\r");
@@ -117,8 +116,14 @@ void CanSat :: init(void){
   Serial.println(base_altitude);
   _delay_ms(1000);
 
-  pre_voltage1 = analogRead(BATTERY1) * (5.00 / 1023.00) * 2;
-  pre_voltage2 = analogRead(BATTERY2) * (5.00 / 1023.00) * 2;
+  uint16_t pre_voltage1_analog1 = analogRead(BATTERY1);
+  uint16_t pre_voltage1_analog2 = analogRead(BATTERY1);
+  uint16_t pre_voltage1_analog3 = analogRead(BATTERY1);
+  pre_voltage1 = ((pre_voltage1_analog1 + pre_voltage1_analog2 + pre_voltage1_analog3) / 3) * (5.00 / 1023.00) * 2;
+  uint16_t pre_voltage2_analog1 = analogRead(BATTERY2);
+  uint16_t pre_voltage2_analog2 = analogRead(BATTERY2);
+  uint16_t pre_voltage2_analog3 = analogRead(BATTERY2);
+  pre_voltage2 = ((pre_voltage2_analog1 + pre_voltage2_analog2 + pre_voltage2_analog3) / 3) * (5.00 / 1023.00) * 2;
 
   
   if(gps.check()) {
@@ -141,23 +146,32 @@ void CanSat :: init(void){
   }
   
   camera.init();
-      
- 
 
+  servo.attach(SERVO);
+  servo.write(90);
+
+  // external interrupt configuration for calculating motor rotation
+  EICRB = ((1 << ISC41) | (1 << ISC40)) | ((1 << ISC51) | (1 << ISC50)); // Rising mode for both pin
+  EIMSK = ((1 << INT4) | (1 << INT5)); // enable interrupt for digital pins 2 and 3
+  sei(); // enable global interrupt 
+  // end of external interrupt configuration
+      
+  //Start Timer 5 Configurations 
+
+  TCNT4 = 49911;   // for 1 sec at 16 MHz 
+
+  TCCR4A = 0x00;
+  TCCR4B = (1<<CS40) | (1<<CS42);  // Timer mode with 1024 prescler
+  TIMSK4 = (1 << TOIE4) ;
+  flag = true;
+
+  
+  /// Timer configurations end
+
+  
   // Motor initialize
   pinMode(MOTOR1, OUTPUT);
   pinMode(MOTOR2, OUTPUT);
-
-  //Start Timer Configurations 
-
-  TCNT1 = 49911;   // for 1 sec at 16 MHz 
-
-  TCCR1A = 0x00;
-  TCCR1B = (1<<CS10) | (1<<CS12);  // Timer mode with 1024 prescler
-  TIMSK1 = (1 << TOIE1) ;
-
-  flag = true;
-
 //  buzzer(3);
 }
 
@@ -180,7 +194,10 @@ void CanSat :: intochar (unsigned long n, char* pres ){
 
 char* CanSat :: getBattery(uint16_t batteryPin) {
   char str[10];
-  float voltage = analogRead(batteryPin) * (5.00 / 1023.00) * 2;
+  uint16_t volt_analog1 = analogRead(batteryPin);
+  uint16_t volt_analog2 = analogRead(batteryPin);
+  uint16_t volt_analog3 = analogRead(batteryPin);
+  float voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 2;
   if (batteryPin == BATTERY1) {
     if (voltage > pre_voltage1) voltage = pre_voltage1;
     else if (voltage < pre_voltage1) pre_voltage1 = voltage;
@@ -270,7 +287,6 @@ void CanSat :: getData(void){
   //Concat speed  - 7th data
 //  memset(temp, 0, sizeof(temp));
 //  spee = pre_altitude-altitude;
-
 //  itoa(spee,temp,10);
 //  pre_altitude=altitude;
   strcat(package,calculateSpeed());
@@ -278,13 +294,14 @@ void CanSat :: getData(void){
 
   //Concat latitude & longtitude
   gps.get_data();
+  
   // 8th data
-  strcat(package,gps.longtitude);
-  strcat(package,"E,");
-  // 9th data
   strcat(package,gps.latitude);
   strcat(package,"N,");
-
+  
+  // 9th data
+  strcat(package,gps.longtitude);
+  strcat(package,"E,");
   
   //picture status - 10th data
   memset(temp, 0, sizeof(temp));
@@ -294,11 +311,19 @@ void CanSat :: getData(void){
   strcat(package,",");
   
   //rpm1 - 11th data 
-  strcat(package,"100");
+//  strcat(package,"100");
+  memset(temp, 0, sizeof(temp));
+  itoa(motor_above_rotation*60, temp, 10);
+  motor_above_rotation = 0;
+  strcat(package,temp);
   strcat(package,",");
   
   //rpm2 - 12th data
-  strcat(package,"100");
+//  strcat(package,"100");
+  memset(temp, 0, sizeof(temp));
+  itoa(motor_under_rotation*60, temp, 10);
+  motor_under_rotation = 0;
+  strcat(package,temp);
   strcat(package,",");
   
   //seperation time - 13th data

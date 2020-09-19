@@ -22,6 +22,8 @@ class CanSat{
    volatile bool motor_flag = false;
    volatile char separation_time[14];
    volatile bool separated = false;
+   volatile uint16_t motor_above_rotation = 0;
+   volatile uint16_t motor_under_rotation = 0;
    bool camera_flag = false;
    bool start_flag  = false ;
    bool altitude_flag  = false ;
@@ -42,6 +44,7 @@ class CanSat{
 
 
    Adafruit_BME680  bme;
+   volatile Servo servo;
 
    
    CanSat();

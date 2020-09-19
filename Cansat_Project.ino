@@ -20,21 +20,32 @@ ISR(USART2_RX_vect){
 }
 
 //Timer INTERRUPT
-ISR (TIMER1_OVF_vect)    // Timer1 ISR
+ISR (TIMER4_OVF_vect)    // Timer1 ISR
 {
-  TCNT1 = 49911;   
-  
-  cur_time++;
-  cnst.timer++;
-  //Get actual data
-  cnst.getData();
+  TCNT4 = 49911;   
 
-  if (cnst.separated == true && cnst.timer%2==0 && cnst.camera_flag == false) {
-    cnst.camera_flag = true;
+  if (cnst.flag == true) {
+    cur_time++;
+    cnst.timer++;
+    //Get actual data
+    cnst.getData();
+    
+    if (cnst.separated == true && cnst.timer%2==0 && cnst.camera_flag == false) {
+      cnst.camera_flag = true;
+    }
   }
      
 }
 
+// Infrared_above (D2) - external interrupt
+ISR(INT4_vect)  {
+  cnst.motor_above_rotation++;
+}
+
+// Infrared_above (D3) - external interrupt
+ISR(INT5_vect) {
+  cnst.motor_under_rotation++;
+}
 
 void setup() {
   
@@ -42,34 +53,42 @@ void setup() {
 
   while(true){
 
+    // check if model was separated or not
     if (cnst.separated == false) {
-    uint16_t ldrValue1 = analogRead(A3);
-    uint16_t ldrValue2 = analogRead(A3);
-    uint16_t ldrValue3 = analogRead(A3);
+      // check light sensor
+      uint16_t ldrValue1 = analogRead(A3);
+      uint16_t ldrValue2 = analogRead(A3);
+      uint16_t ldrValue3 = analogRead(A3);
+      uint16_t ldrValue = (ldrValue1 + ldrValue2 + ldrValue3) / 3;
 
-       
-      if (ldrValue1 >= 70 && ldrValue2 >= 700 && ldrValue3 >= 700/* && cnst.height >= 350*/) {
+      // check if model is being separated or not
+      if (ldrValue >= 700 /*&& cnst.altitude >= 2*/) {
         if (cnst.separated == false) {
           memset(cnst.separation_time, '\0', 14);
           strcat(cnst.separation_time, cnst.gps.utc_time);
+          
           cnst.motor_flag = true;
           cnst.separated = true;
+          cnst.servo.write(0);
+          delay(100);
         }
       }
-   }
+    }
 
-   if (cnst.spee == 0) {
-    cnst.motor_flag == false;
-   }
-     
+//    if (cnst.spee == 0) {
+//    cnst.motor_flag == false;
+//    }
+
+    // motor will rotate if model was separated
     if (cnst.motor_flag) {
-      cnst.runProp(250, 250);
+      cnst.runProp(220, 200);
     }
     else {
-      cnst.stopProp();
+  //      cnst.stopProp();
     }
-    
-    if(cnst.camera_flag){
+
+    // capture photo
+    if(cnst.camera_flag && cnst.flag == true){
       cur_time = millis();
       cnst.camera.capture(cnst.gps.utc_time);
       Serial.print("Capture time:"  );
@@ -78,9 +97,18 @@ void setup() {
       if (cur_time < 1.0)
       cnst.camera_flag = false;
     }
+
+    // mission completed, leave loop
+//    uint16_t ldrValue4 = analogRead(A3);
+//    if (cnst.altitude < 1.0 && ldrValue4 >= 700) {
+//      cnst.stopProp();
+//      cnst.flag = false;
+//      break;
+//    }
   }
 }
   
 void loop() {   
  
 }
+
