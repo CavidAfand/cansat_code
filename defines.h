@@ -5,11 +5,11 @@
 #define BUZZER 38 
 #define DEFINED_ALT 50
 #define SERVO 34
-#define MOTOR1 11
-#define MOTOR2 5
+#define MOTOR1 10  // ALT PER
+#define MOTOR2 5  // UST PER
 
-#define BATTERY1 A1
-#define BATTERY2 A2
+#define BATTERY1 A1  // controller battery
+#define BATTERY2 A2  // motor battery
 
 #define INFRARED_ABOVE 2
 #define INFRARED_UNDER 3

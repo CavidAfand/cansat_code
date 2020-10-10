@@ -7,6 +7,7 @@ int pre_time = 0;
 int cur_time = 0;
 volatile int captured_photo_number = 0;
 volatile int sent_photo_number = 0; 
+volatile char image_names[8];
 
 CanSat cnst;
 
@@ -32,6 +33,12 @@ ISR (TIMER4_OVF_vect)    // Timer1 ISR
     
     if (cnst.separated == true && cnst.timer%2==0 && cnst.camera_flag == false) {
       cnst.camera_flag = true;
+      
+      if (captured_photo_number > 5) {
+        memset(image_names, '\0', 8);
+        strcat(image_names, cnst.gps.utc_time);
+      }
+      
     }
   }
      
@@ -69,32 +76,28 @@ void setup() {
           
           cnst.motor_flag = true;
           cnst.separated = true;
-          cnst.servo.write(0);
-          delay(100);
         }
       }
     }
 
-//    if (cnst.spee == 0) {
-//    cnst.motor_flag == false;
-//    }
 
     // motor will rotate if model was separated
-    if (cnst.motor_flag) {
-      cnst.runProp(220, 200);
+    if (cnst.motor_flag && cnst.reset_command) {
+      cnst.servo.write(113);
+      delay(450);
+      cnst.runProp(255, 255);
     }
     else {
   //      cnst.stopProp();
     }
 
     // capture photo
-    if(cnst.camera_flag && cnst.flag == true){
+    if(cnst.camera_flag && cnst.flag && cnst.reset_command){
       cur_time = millis();
       cnst.camera.capture(cnst.gps.utc_time);
       Serial.print("Capture time:"  );
       cur_time = millis()-cur_time;
       Serial.println(float(cur_time)/1000);
-      if (cur_time < 1.0)
       cnst.camera_flag = false;
     }
 

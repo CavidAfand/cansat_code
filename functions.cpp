@@ -77,6 +77,11 @@ void CanSat::changeBaudrate() {
 }
 
 void CanSat :: init(void){
+
+  // servo init
+  servo.attach(SERVO);
+  servo.write(60);
+
   
   //Starting UART Communications
   initUSART();
@@ -119,11 +124,11 @@ void CanSat :: init(void){
   uint16_t pre_voltage1_analog1 = analogRead(BATTERY1);
   uint16_t pre_voltage1_analog2 = analogRead(BATTERY1);
   uint16_t pre_voltage1_analog3 = analogRead(BATTERY1);
-  pre_voltage1 = ((pre_voltage1_analog1 + pre_voltage1_analog2 + pre_voltage1_analog3) / 3) * (5.00 / 1023.00) * 2;
+  pre_voltage1 = ((pre_voltage1_analog1 + pre_voltage1_analog2 + pre_voltage1_analog3) / 3) * (5.00 / 1023.00) * 2.14;// * 2;
   uint16_t pre_voltage2_analog1 = analogRead(BATTERY2);
   uint16_t pre_voltage2_analog2 = analogRead(BATTERY2);
   uint16_t pre_voltage2_analog3 = analogRead(BATTERY2);
-  pre_voltage2 = ((pre_voltage2_analog1 + pre_voltage2_analog2 + pre_voltage2_analog3) / 3) * (5.00 / 1023.00) * 2;
+  pre_voltage2 = ((pre_voltage2_analog1 + pre_voltage2_analog2 + pre_voltage2_analog3) / 3) * (5.00 / 1023.00) * 1.89;// * 2 / 3;
 
   
   if(gps.check()) {
@@ -147,8 +152,7 @@ void CanSat :: init(void){
   
   camera.init();
 
-  servo.attach(SERVO);
-  servo.write(90);
+  
 
   // external interrupt configuration for calculating motor rotation
   EICRB = ((1 << ISC41) | (1 << ISC40)) | ((1 << ISC51) | (1 << ISC50)); // Rising mode for both pin
@@ -161,17 +165,17 @@ void CanSat :: init(void){
   TCNT4 = 49911;   // for 1 sec at 16 MHz 
 
   TCCR4A = 0x00;
-  TCCR4B = (1<<CS40) | (1<<CS42);  // Timer mode with 1024 prescler
+  TCCR4B = ((1<<CS40) | (1<<CS42));  // Timer mode with 1024 prescler
   TIMSK4 = (1 << TOIE4) ;
   flag = true;
 
   
   /// Timer configurations end
 
-  
   // Motor initialize
   pinMode(MOTOR1, OUTPUT);
   pinMode(MOTOR2, OUTPUT);
+
 //  buzzer(3);
 }
 
@@ -197,15 +201,22 @@ char* CanSat :: getBattery(uint16_t batteryPin) {
   uint16_t volt_analog1 = analogRead(batteryPin);
   uint16_t volt_analog2 = analogRead(batteryPin);
   uint16_t volt_analog3 = analogRead(batteryPin);
-  float voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 2;
+  float voltage;
   if (batteryPin == BATTERY1) {
-    if (voltage > pre_voltage1) voltage = pre_voltage1;
-    else if (voltage < pre_voltage1) pre_voltage1 = voltage;
+   voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 2.14 ;// * 2;
   }
-  else if (batteryPin == BATTERY2) {
-    if (voltage > pre_voltage2) voltage = pre_voltage2;
-    else if (voltage < pre_voltage2) pre_voltage2 = voltage;
+  else if (batteryPin == BATTERY2){
+    voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 1.89;// * 3 / 2;
   }
+//  float voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 2;
+//  if (batteryPin == BATTERY1) {
+//    if (voltage > pre_voltage1) voltage = pre_voltage1;
+//    else if (voltage < pre_voltage1) pre_voltage1 = voltage;
+//  }
+//  else if (batteryPin == BATTERY2) {
+//    if (voltage > pre_voltage2) voltage = pre_voltage2;
+//    else if (voltage < pre_voltage2) pre_voltage2 = voltage;
+//  }
   dtostrf(voltage, 3, 1, str);
   return str;
 }
@@ -369,6 +380,7 @@ void CanSat :: reset_counter() {
 //  pre_altitude = altitude; 
 
   separated = false;
+  reset_command = true;
 }
 
 //
