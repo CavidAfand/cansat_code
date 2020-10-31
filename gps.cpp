@@ -1,10 +1,12 @@
 #include "gps.h"
 #include "uart.h"
+#include <string.h>
 
   GPS :: GPS(void){
 	
 }
  bool GPS :: check(void){
+    memset(utc_time,'\0',10);
     if(UCSR1A&(1<<RXC1))
     return 1;
     else
@@ -20,11 +22,14 @@
   
   char ch;
   // take time from gps
+  bool time_exist = false;
   uint8_t index = 0;
   while ((ch = receiveByte1()) != ',') {
+    time_exist = true;
     utc_time[index++] = ch;
   }
-  utc_time[index] = '\0';
+  if (time_exist == false) increase_time();
+  else utc_time[index] = '\0';
 
   // pass [Navigation receiver warning A = OK, V = warning]
   while (receiveByte1() != ',');
@@ -180,5 +185,32 @@
     date_time[19]='\0';
     
     
+ }
+
+ void GPS :: increase_time() {
+    int all_seconds = 0;
+    int seconds = 10 * ((int)utc_time[4] - 48) + ((int)utc_time[5] - 48);
+    int minutes = 10 * ((int)utc_time[2] - 48) + ((int)utc_time[3] - 48);
+    int hours = 10 * ((int)utc_time[0] - 48) + ((int)utc_time[1] - 48);
+
+    all_seconds = hours*3600 + minutes*60 + seconds;
+    all_seconds++;
+
+    hours = all_seconds / 3600;
+    utc_time[0] = hours/10;
+    utc_time[1] = hours%10;
+
+    all_seconds = all_seconds - hours*3600;
+
+    minutes = all_seconds / 60;
+    utc_time[2] = minutes / 10;
+    utc_time[3] = minutes % 10;
+
+
+    all_seconds = all_seconds - minutes*60;
+    utc_time[4] = all_seconds / 10;
+    utc_time[5] = all_seconds % 10;
+
+    utc_time[6] = '\0';
  }
  

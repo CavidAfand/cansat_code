@@ -25,6 +25,7 @@ class CanSat{
    volatile uint16_t motor_above_rotation = 0;
    volatile uint16_t motor_under_rotation = 0;
    volatile bool reset_command = false;
+   volatile bool reset_buzzer_beep = false;
 
    bool camera_flag = false;
    bool start_flag  = false ;
@@ -40,7 +41,7 @@ class CanSat{
    volatile float altitude = 0;
    volatile float base_altitude = 0;
    volatile float pre_altitude  = 0;
-   volatile float spee = 0;
+   volatile float model_speed = 0;
    float pre_voltage1 = 0;
    float pre_voltage2 = 0;
 
@@ -54,6 +55,7 @@ class CanSat{
    void init();
 //      float readAltitude(float);
    void buzzer (uint8_t);
+   void buzzer_ms(uint16_t);
    void intochar(unsigned long,char*);
    GPS gps;
    Camera camera;

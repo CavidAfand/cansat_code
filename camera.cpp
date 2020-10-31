@@ -7,7 +7,6 @@
   extern char utc[7];
   extern volatile int captured_photo_number;
   extern volatile int sent_photo_number;
-  extern volatile char image_names[8];
     
   void Camera :: init(void){    
     
@@ -58,7 +57,8 @@
     
     //Initialize SD Card
     while(!SD.begin(SD_CS)){
-      printString("SD Card Error!\n");
+//      printString("asdasd");
+//      printString("SD Card Error!\n");
       _delay_ms(1000);
     }
     printString("SD Card detected.\n");
@@ -189,12 +189,7 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *timeString)
       }
       memset(str, '\0', 12);
       if (string_flag == true) {
-        if (captured_photo_number > 5) {
-          strcat(str, timeString);
-        }
-        else {
-          strcat(str,image_names); 
-        }
+        strcat(str, timeString);
         strcat(str, ".jpg");
       }else {
         str[0] = '\0';

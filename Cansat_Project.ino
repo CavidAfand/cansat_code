@@ -34,7 +34,7 @@ ISR (TIMER4_OVF_vect)    // Timer1 ISR
     if (cnst.separated == true && cnst.timer%2==0 && cnst.camera_flag == false) {
       cnst.camera_flag = true;
       
-      if (captured_photo_number > 5) {
+      if (captured_photo_number <= 5) {
         memset(image_names, '\0', 8);
         strcat(image_names, cnst.gps.utc_time);
       }
@@ -59,7 +59,6 @@ void setup() {
   cnst.init();
 
   while(true){
-
     // check if model was separated or not
     if (cnst.separated == false) {
       // check light sensor
@@ -69,13 +68,15 @@ void setup() {
       uint16_t ldrValue = (ldrValue1 + ldrValue2 + ldrValue3) / 3;
 
       // check if model is being separated or not
-      if (ldrValue >= 700 /*&& cnst.altitude >= 2*/) {
+      if (ldrValue >= 700 && cnst.altitude >= 1.1) {
         if (cnst.separated == false) {
           memset(cnst.separation_time, '\0', 14);
           strcat(cnst.separation_time, cnst.gps.utc_time);
-          
-          cnst.motor_flag = true;
-          cnst.separated = true;
+
+          if (cnst.reset_command == true) {
+            cnst.motor_flag = true;
+            cnst.separated = true;
+          }
         }
       }
     }
@@ -87,14 +88,21 @@ void setup() {
       delay(450);
       cnst.runProp(255, 255);
     }
-    else {
-  //      cnst.stopProp();
-    }
 
+
+    // buzzer beeps if reset command was received
+    if (cnst.reset_buzzer_beep == true) {
+      cnst.buzzer_ms(500);
+      cnst.reset_buzzer_beep = false;
+    }
+    
     // capture photo
     if(cnst.camera_flag && cnst.flag && cnst.reset_command){
       cur_time = millis();
-      cnst.camera.capture(cnst.gps.utc_time);
+      if (captured_photo_number > 5) {
+        cnst.camera.capture(cnst.gps.utc_time);
+      }
+      else cnst.camera.capture(image_names);
       Serial.print("Capture time:"  );
       cur_time = millis()-cur_time;
       Serial.println(float(cur_time)/1000);
@@ -102,12 +110,11 @@ void setup() {
     }
 
     // mission completed, leave loop
-//    uint16_t ldrValue4 = analogRead(A3);
-//    if (cnst.altitude < 1.0 && ldrValue4 >= 700) {
+//    if (cnst.flag == true && cnst.separated == true && cnst.model_speed < 1) {
 //      cnst.stopProp();
 //      cnst.flag = false;
-//      break;
 //    }
+
   }
 }
   

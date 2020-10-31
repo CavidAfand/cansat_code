@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <stdlib.h>
 
 class GPS{
   public:
@@ -19,4 +20,5 @@ class GPS{
     void get_data();
     void date_format();
     void get_data_new();
+    void increase_time();
 };

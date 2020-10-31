@@ -23,6 +23,13 @@ void CanSat :: buzzer(uint8_t times){
   }
 }
 
+void CanSat :: buzzer_ms(uint16_t during) {
+  pinMode(BUZZER,OUTPUT);
+  digitalWrite(BUZZER, HIGH);
+  delay(during);
+  digitalWrite(BUZZER, LOW);
+}
+
 void CanSat :: runProp(uint8_t speed1,uint8_t speed2){
   analogWrite(MOTOR1, speed1);
   analogWrite(MOTOR2, speed2);
@@ -78,6 +85,10 @@ void CanSat::changeBaudrate() {
 
 void CanSat :: init(void){
 
+  // buzzer init
+  buzzer_ms(2000);
+
+
   // servo init
   servo.attach(SERVO);
   servo.write(60);
@@ -92,12 +103,16 @@ void CanSat :: init(void){
   if(bme.begin()){
      
     printString("BME680 initialized success.\n\r");
-    printString2("@BMP280 initialized success.*\n\r");
   
   }
   else{ 
+    
     printString("BME680 initialized failed. Check wiring.\n\r");
     printString("@BMP280 initialized failed. Check wiring.*\n\r");
+    while (true) {
+      buzzer_ms(500);
+      delay(100);
+    }
   }
   
   bme.setTemperatureOversampling(BME680_OS_8X);
@@ -108,7 +123,10 @@ void CanSat :: init(void){
  
   if (! bme.performReading()) {
     Serial.println("Failed to perform reading :(");
-    return;
+    while (true) {
+      buzzer_ms(500);
+      delay(100);
+    }
   }
   char temp[10];
   base_pressure = bme.readPressure();
@@ -134,11 +152,6 @@ void CanSat :: init(void){
   if(gps.check()) {
 
     printString("GPS initialized success.\n\r");
-    
-////    printString2("@GPS initialized success.*\n\r");
-//    printString1("$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
-//    printString1("$PMTK251,115200*1F\r\n");
-//    changeBaudrate();
 
     gps.get_data();
     gps.get_data();
@@ -147,7 +160,10 @@ void CanSat :: init(void){
   }
   else{ 
     printString("GPS initialized failed. Check wiring.\n\r");
-//    printString2("@GPS initialized failed. Check wiring.*\n\r");
+    while (true) {
+      buzzer_ms(500);
+      delay(100);
+    }
   }
   
   camera.init();
@@ -176,7 +192,7 @@ void CanSat :: init(void){
   pinMode(MOTOR1, OUTPUT);
   pinMode(MOTOR2, OUTPUT);
 
-//  buzzer(3);
+
 }
 
 void CanSat :: intochar (unsigned long n, char* pres ){
@@ -202,21 +218,14 @@ char* CanSat :: getBattery(uint16_t batteryPin) {
   uint16_t volt_analog2 = analogRead(batteryPin);
   uint16_t volt_analog3 = analogRead(batteryPin);
   float voltage;
+  
   if (batteryPin == BATTERY1) {
    voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 2.14 ;// * 2;
   }
   else if (batteryPin == BATTERY2){
     voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 1.89;// * 3 / 2;
   }
-//  float voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 2;
-//  if (batteryPin == BATTERY1) {
-//    if (voltage > pre_voltage1) voltage = pre_voltage1;
-//    else if (voltage < pre_voltage1) pre_voltage1 = voltage;
-//  }
-//  else if (batteryPin == BATTERY2) {
-//    if (voltage > pre_voltage2) voltage = pre_voltage2;
-//    else if (voltage < pre_voltage2) pre_voltage2 = voltage;
-//  }
+
   dtostrf(voltage, 3, 1, str);
   return str;
 }
@@ -236,9 +245,9 @@ char* CanSat :: calculateSpeed() {
   char str[10];
   memset(str, '\0', 10);
 
-  spee = altitude - pre_altitude;
+  model_speed = altitude - pre_altitude;
   pre_altitude = altitude;
-  int spee_int = (int)(spee * 100);
+  int spee_int = (int)(model_speed * 100);
 
   if(spee_int < 0 && spee_int/100 == 0) sprintf(str, "%d.%d", spee_int/100, abs(spee_int%100));
   else sprintf(str, "%d.%d", spee_int/100, abs(spee_int%100));
@@ -372,29 +381,21 @@ void CanSat :: getData(void){
 
 
 void CanSat :: reset_counter() {
+
+  reset_buzzer_beep = true;
+
   timer = 0;
   number_of_package = 0;
 
   base_altitude = bme.readAltitude(SEALEVELPRESSURE_HPA);
-  altitude = base_altitude;
-//  pre_altitude = altitude; 
-
+//  altitude = base_altitude;
+//  pre_altitude = altitude;
+  altitude =  bme.readAltitude(SEALEVELPRESSURE_HPA) - base_altitude;
+ 
   separated = false;
   reset_command = true;
+  
 }
 
-//
-//float CanSat::readAltitude(float seaLevelhPa) {
-//  bme.performReading();
-//    
-//  float altitude;
-//  
-//  float Pressure = bme.pressure; // in Si units for Pascal
-//  Pressure /= 100;
-//
-//  altitude = 44330 * (1.0 - pow(Pressure / seaLevelhPa, 0.1903));
-//
-//  return altitude;
-//}
 
   
