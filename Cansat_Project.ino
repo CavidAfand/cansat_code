@@ -99,7 +99,7 @@ void setup() {
       char alt_image_name[5];
       sprintf(alt_image_name, "%d", alt_image_num);
       cur_time = millis();
-      cnst.camera.capture(image_names, );
+      cnst.camera.capture(image_names, alt_image_name);
       Serial.print("Capture time:"  );
       cur_time = millis()-cur_time;
       Serial.println(float(cur_time)/1000);
