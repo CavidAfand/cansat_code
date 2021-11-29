@@ -33,12 +33,8 @@ ISR (TIMER4_OVF_vect)    // Timer1 ISR
     
     if (cnst.separated == true && cnst.timer%2==0 && cnst.camera_flag == false) {
       cnst.camera_flag = true;
-      
-      if (captured_photo_number <= 5) {
-        memset(image_names, '\0', 8);
-        strcat(image_names, cnst.gps.utc_time);
-      }
-      
+      memset(image_names, '\0', 8);
+      strcat(image_names, cnst.gps.utc_time);
     }
   }
      
@@ -57,6 +53,8 @@ ISR(INT5_vect) {
 void setup() {
   
   cnst.init();
+
+  uint16_t alt_image_num = 1000;
 
   while(true){
     // check if model was separated or not
@@ -98,16 +96,16 @@ void setup() {
     
     // capture photo
     if(cnst.camera_flag && cnst.flag && cnst.reset_command){
+      char alt_image_name[5];
+      sprintf(alt_image_name, "%d", alt_image_num);
       cur_time = millis();
-      if (captured_photo_number > 5) {
-        cnst.camera.capture(cnst.gps.utc_time);
-      }
-      else cnst.camera.capture(image_names);
+      cnst.camera.capture(image_names, );
       Serial.print("Capture time:"  );
       cur_time = millis()-cur_time;
       Serial.println(float(cur_time)/1000);
       cnst.camera_flag = false;
     }
+    alt_image_num++;
 
     // mission completed, leave loop
 //    if (cnst.flag == true && cnst.separated == true && cnst.model_speed < 1) {
@@ -121,4 +119,3 @@ void setup() {
 void loop() {   
  
 }
-

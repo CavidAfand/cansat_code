@@ -74,7 +74,7 @@
 
 
 
-void Camera :: capture(const char *timeString){
+void Camera :: capture(const char *timeString, const char *alt_name){
   
     myCAM.flush_fifo();
     myCAM.clear_fifo_flag();
@@ -84,14 +84,14 @@ void Camera :: capture(const char *timeString){
     printString("start capture.\n");
     while ( !myCAM.get_bit(ARDUCHIP_TRIG, CAP_DONE_MASK)); 
     printString("CAM Capture Done.\n");
-    read_fifo_burst(myCAM, timeString);
+    read_fifo_burst(myCAM, timeString, alt_name);
     myCAM.clear_fifo_flag();
 //    _delay_ms(500);
   
   } 
 
 
-uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *timeString)
+uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *timeString, const char *alt_name)
 {
   uint8_t temp = 0, temp_last = 0;
   uint32_t length = 0;
@@ -192,8 +192,8 @@ uint8_t Camera :: read_fifo_burst(ArduCAM myCAM, const char *timeString)
         strcat(str, timeString);
         strcat(str, ".jpg");
       }else {
-        str[0] = '\0';
-        strcat(str, "12345.jpg");
+        strcat(str, alt_name);
+        strcat(str, ".jpg");
       }
 
     
