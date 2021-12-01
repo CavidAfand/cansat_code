@@ -212,8 +212,7 @@ void CanSat :: intochar (unsigned long n, char* pres ){
   }
 
 
-char* CanSat :: getBattery(uint16_t batteryPin) {
-  char str[10];
+void CanSat :: getBattery(uint16_t batteryPin, char *volt) {
   uint16_t volt_analog1 = analogRead(batteryPin);
   uint16_t volt_analog2 = analogRead(batteryPin);
   uint16_t volt_analog3 = analogRead(batteryPin);
@@ -226,32 +225,39 @@ char* CanSat :: getBattery(uint16_t batteryPin) {
     voltage = ((volt_analog1 + volt_analog2 + volt_analog3) / 3) * (5.00 / 1023.00) * 1.89;// * 3 / 2;
   }
 
-  dtostrf(voltage, 3, 1, str);
-  return str;
+  dtostrf(voltage, 3, 1, volt);
 }
 
-char* CanSat :: calculateAltitude() {
-  char str[15];
-  memset(str, '\0', 15);
+//char* CanSat :: calculateAltitude() {
+//  char str[15];
+//  memset(str, '\0', 15);
+//  altitude = bme.readAltitude(SEALEVELPRESSURE_HPA) - base_altitude;
+//  int altitude_int = (int)(altitude * 100);
+//
+//  if (altitude_int < 0 && altitude_int/100 == 0) sprintf(str, "-%d.%d", altitude_int/100, abs(altitude_int%100));
+//  else sprintf(str, "%d.%d", altitude_int/100, abs(altitude_int%100));
+//  return str;
+//}
+
+void CanSat :: calculateAltitude(char *alt) {
+  
+  memset(alt, '\0', 15);
   altitude = bme.readAltitude(SEALEVELPRESSURE_HPA) - base_altitude;
   int altitude_int = (int)(altitude * 100);
 
-  if (altitude_int < 0 && altitude_int/100 == 0) sprintf(str, "-%d.%d", altitude_int/100, abs(altitude_int%100));
-  else sprintf(str, "%d.%d", altitude_int/100, abs(altitude_int%100));
-  return str;
+  if (altitude_int < 0 && altitude_int/100 == 0) sprintf(alt, "-%d.%d", altitude_int/100, abs(altitude_int%100));
+  else sprintf(alt, "%d.%d", altitude_int/100, abs(altitude_int%100));
 }
 
-char* CanSat :: calculateSpeed() {
-  char str[10];
-  memset(str, '\0', 10);
+void CanSat :: calculateSpeed(char *spd) {
+  memset(spd, '\0', 10);
 
   model_speed = altitude - pre_altitude;
   pre_altitude = altitude;
   int spee_int = (int)(model_speed * 100);
 
-  if(spee_int < 0 && spee_int/100 == 0) sprintf(str, "%d.%d", spee_int/100, abs(spee_int%100));
-  else sprintf(str, "%d.%d", spee_int/100, abs(spee_int%100));
-  return str;
+  if(spee_int < 0 && spee_int/100 == 0) sprintf(spd, "%d.%d", spee_int/100, abs(spee_int%100));
+  else sprintf(spd, "%d.%d", spee_int/100, abs(spee_int%100));
 }
 
 void CanSat :: getData(void){
@@ -291,17 +297,20 @@ void CanSat :: getData(void){
   strcat(package,",");
 
   //bat_vol1 - 4th data
-  strcat(package, getBattery(BATTERY1));
+  getBattery(BATTERY1, temp);
+  strcat(package, temp);
   strcat(package,",");
 
   //bat_vo12 - 5th data
-  strcat(package, getBattery(BATTERY2));
+  getBattery(BATTERY2, temp);
+  strcat(package, temp);
   strcat(package,",");
 
   //reset temporary String (temp) & Concat altitude to package - 6th data
 //  memset(temp, 0, sizeof( temp));  
 //  itoa(altitude,temp,10);
-  strcat(package,calculateAltitude());
+  calculateAltitude(temp);
+  strcat(package, temp);
   strcat(package,",");
   
   //Concat speed  - 7th data
@@ -309,7 +318,8 @@ void CanSat :: getData(void){
 //  spee = pre_altitude-altitude;
 //  itoa(spee,temp,10);
 //  pre_altitude=altitude;
-  strcat(package,calculateSpeed());
+  calculateSpeed(temp);
+  strcat(package,temp);
   strcat(package,",");
 
   //Concat latitude & longtitude

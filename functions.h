@@ -62,9 +62,9 @@ class CanSat{
    float base_pressure;
    uint16_t height;
    void getData();
-   char* getBattery(uint16_t batteryPin);
-   char* calculateAltitude();
-   char* calculateSpeed();
+   void getBattery(uint16_t batteryPin, char *volt);
+   void calculateAltitude(char *alt);
+   void calculateSpeed(char *spd);
    void runProp(uint8_t speed1,uint8_t speed2);
    void stopProp();
    void changeBaudrate();
